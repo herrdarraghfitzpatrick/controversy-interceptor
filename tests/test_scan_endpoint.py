@@ -103,3 +103,64 @@ def test_scan_requires_at_least_one_target_market(client):
         },
     )
     assert response.status_code == 422
+
+
+def test_recent_event_lens_not_run_by_default(client, monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        "app.routers.scan.run_recent_event_pass",
+        lambda **kwargs: calls.append(kwargs) or ([], True),
+    )
+
+    response = client.post(
+        "/scan",
+        json={
+            "text": "Safe copy.",
+            "target_markets": ["KR"],
+            "industry": "food_beverage",
+            "content_type": "paid social ad",
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["live_search_performed"] is False
+    assert calls == []
+
+
+def test_recent_event_lens_runs_when_opted_in(client, monkeypatch):
+    from app.schemas.scan import Finding
+
+    def fake_recent_event_pass(**kwargs):
+        return (
+            [
+                Finding(
+                    span="Tank Day",
+                    category="recent_event",
+                    target_market="South Korea",
+                    severity="high",
+                    confidence=0.85,
+                    explanation="Collides with the Gwangju massacre anniversary.",
+                    precedent="https://example.com/news-story",
+                    suggested_fix=None,
+                )
+            ],
+            True,
+        )
+
+    monkeypatch.setattr("app.routers.scan.run_recent_event_pass", fake_recent_event_pass)
+
+    response = client.post(
+        "/scan",
+        json={
+            "text": "Celebrate Tank Day with us!",
+            "target_markets": ["KR"],
+            "industry": "food_beverage",
+            "content_type": "paid social ad",
+            "check_recent_events": True,
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["live_search_performed"] is True
+    assert len(body["findings"]) == 1
+    assert body["findings"][0]["category"] == "recent_event"
+    assert body["findings"][0]["span"] == "Tank Day"

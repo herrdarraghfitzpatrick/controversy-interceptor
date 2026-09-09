@@ -8,6 +8,7 @@ from app.models.scan import Scan
 from app.schemas.scan import Finding, ScanRequest, ScanResponse
 from app.services import library_matcher
 from app.services.claude_pipeline import run_claude_pass
+from app.services.recent_event_pipeline import run_recent_event_pass
 from app.services.scope import build_scope_applied
 
 router = APIRouter(tags=["scan"])
@@ -38,6 +39,17 @@ def create_scan(request: ScanRequest, db: Session = Depends(get_db)) -> ScanResp
 
     findings: list[Finding] = library_findings + claude_findings
 
+    live_search_performed = False
+    if request.check_recent_events:
+        recent_event_findings, live_search_performed = run_recent_event_pass(
+            text=request.text,
+            target_markets=request.target_markets,
+            industry=request.industry,
+            content_type=request.content_type,
+            scope_applied=scope_applied,
+        )
+        findings += recent_event_findings
+
     scan = Scan(
         text=request.text,
         target_markets=request.target_markets,
@@ -47,7 +59,7 @@ def create_scan(request: ScanRequest, db: Session = Depends(get_db)) -> ScanResp
         scope_applied=scope_applied,
         findings=[f.model_dump(mode="json") for f in findings],
         checked_against_library_version=library_matcher.get_library_version(db),
-        live_search_performed=False,
+        live_search_performed=live_search_performed,
     )
     db.add(scan)
     db.commit()

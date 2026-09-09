@@ -14,6 +14,14 @@ class ScanRequest(BaseModel):
     imagery_description: str | None = Field(
         default=None, description="Optional freeform description of visuals, used by the imagery lens only"
     )
+    check_recent_events: bool = Field(
+        default=False,
+        description=(
+            "Opt in to the recent-event collision lens (lens 4), which uses live web search "
+            "and is slower/costlier than the rest of the scan - gated per spec section 7 Phase 2. "
+            "Recommended for high-stakes scans (e.g. paid ads, press releases) rather than every scan."
+        ),
+    )
 
 
 class Finding(BaseModel):
