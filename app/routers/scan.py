@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models.scan import Scan
-from app.schemas.scan import Finding, ScanRequest, ScanResponse
+from app.schemas.scan import Finding, ScanHistoryItem, ScanRequest, ScanResponse
 from app.services import library_matcher
 from app.services.claude_pipeline import run_claude_pass
 from app.services.recent_event_pipeline import run_recent_event_pass
@@ -87,3 +87,24 @@ def get_scan(scan_id: uuid.UUID, db: Session = Depends(get_db)) -> ScanResponse:
         checked_against_library_version=scan.checked_against_library_version,
         live_search_performed=scan.live_search_performed,
     )
+
+
+@router.get("/scans", response_model=list[ScanHistoryItem])
+def list_scans(limit: int = 50, offset: int = 0, db: Session = Depends(get_db)) -> list[ScanHistoryItem]:
+    """Scan history (spec section 6). Not yet scoped per-account - accounts
+    arrive in Phase 4, so this lists all scans for now.
+    """
+    limit = max(1, min(limit, 100))
+    offset = max(0, offset)
+
+    scans = db.query(Scan).order_by(Scan.created_at.desc()).offset(offset).limit(limit).all()
+
+    return [
+        ScanHistoryItem(
+            scan_id=s.id,
+            scope_applied=s.scope_applied,
+            created_at=s.created_at,
+            finding_count=len(s.findings),
+        )
+        for s in scans
+    ]

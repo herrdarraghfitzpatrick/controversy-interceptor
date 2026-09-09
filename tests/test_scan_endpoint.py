@@ -105,6 +105,41 @@ def test_scan_requires_at_least_one_target_market(client):
     assert response.status_code == 422
 
 
+def test_list_scans_returns_history_newest_first(client):
+    first = client.post(
+        "/scan",
+        json={"text": "First scan.", "target_markets": ["US"], "industry": "fmcg", "content_type": "internal comms"},
+    ).json()
+    second = client.post(
+        "/scan",
+        json={"text": "Second scan.", "target_markets": ["US"], "industry": "fmcg", "content_type": "internal comms"},
+    ).json()
+
+    response = client.get("/scans")
+    assert response.status_code == 200
+    body = response.json()
+    scan_ids = [item["scan_id"] for item in body]
+    assert scan_ids.index(second["scan_id"]) < scan_ids.index(first["scan_id"])
+    assert all("finding_count" in item and "scope_applied" in item for item in body)
+
+
+def test_list_scans_respects_limit(client):
+    for i in range(3):
+        client.post(
+            "/scan",
+            json={
+                "text": f"Scan {i}.",
+                "target_markets": ["US"],
+                "industry": "fmcg",
+                "content_type": "internal comms",
+            },
+        )
+
+    response = client.get("/scans?limit=2")
+    assert response.status_code == 200
+    assert len(response.json()) == 2
+
+
 def test_recent_event_lens_not_run_by_default(client, monkeypatch):
     calls = []
     monkeypatch.setattr(

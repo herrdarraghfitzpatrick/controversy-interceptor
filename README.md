@@ -1,19 +1,23 @@
-# Controversy Scanner — Detection API (Phase 1 + Phase 2)
+# Controversy Scanner (Phases 1-3)
 
 Scans campaign text/briefs for phrases, imagery references, or concepts that
 could trigger a cultural, political, historical, or social-media backlash
-in a given target market. This covers Phases 1-2 from the v0.1 spec: the
+in a given target market. This covers Phases 1-3 from the v0.1 spec: the
 core detection API, library-first matching against a curated case library,
 a single Claude pass for the linguistic, historical, brand, and imagery
-lenses, and an opt-in live-web-search pass for the recent-event lens. The
-web dashboard, accounts/billing, and the library refresh job are later
-phases.
+lenses, an opt-in live-web-search pass for the recent-event lens, and the
+web dashboard wrapping the API. Accounts/billing and the library refresh
+job are later phases.
+
+This file covers the backend (`app/`). See [`frontend/README.md`](frontend/README.md)
+for the web dashboard.
 
 ## Stack
 
 - FastAPI (Python)
 - Postgres via SQLAlchemy + Alembic migrations
 - Claude API (`anthropic` SDK) for the non-library detection pass
+- Next.js + TypeScript + Tailwind for the dashboard (`frontend/`)
 
 ## Setup
 
@@ -109,6 +113,13 @@ a Claude API hiccup in production.
 
 Retrieves a past report.
 
+### `GET /scans?limit=50&offset=0`
+
+Scan history (spec section 6), newest first. Not yet scoped per-account —
+accounts arrive in Phase 4, so this currently lists every scan. Returns
+`scan_id`, `scope_applied`, `created_at`, `finding_count` per entry (not
+the full findings — fetch `GET /scan/{scan_id}` for that).
+
 ### `GET /library?region=IE&category=linguistic`
 
 Browses the case library (internal/admin use). Query params: `region`
@@ -148,11 +159,16 @@ Tests use a real Postgres database (the models rely on Postgres-specific
 `ARRAY`/`JSONB` column types) and mock the Claude API call, so they run
 without network access or an API key.
 
+## Web dashboard
+
+See [`frontend/README.md`](frontend/README.md) — a Next.js app implementing
+spec section 6: paste text, pick target market(s)/industry/content type,
+get a report grouped by severity, and browse scan history.
+
 ## What's not built yet
 
-Per the build spec's phased roadmap (section 7): the web dashboard
-(Phase 3), accounts + Stripe billing (Phase 4), and the weekly
-case-library refresh job (Phase 5).
+Per the build spec's phased roadmap (section 7): accounts + Stripe billing
+(Phase 4), and the weekly case-library refresh job (Phase 5).
 
 Also unvalidated per spec section 8: actual cost-per-scan and latency for
 the recent-event pass haven't been measured against real traffic yet —
