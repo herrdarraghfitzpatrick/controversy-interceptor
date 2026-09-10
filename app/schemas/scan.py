@@ -5,14 +5,29 @@ from pydantic import BaseModel, Field
 
 from app.models.case import RiskCategory, Severity
 
+# "Campaign copy or brief" per spec section 5 - generous enough for a long
+# press release or blog post (roughly 3,000-4,000 words), but bounded so a
+# pasted report/whitepaper doesn't turn one scan into a huge, slow, costly
+# Claude call (this pipeline runs the text through Claude up to twice - the
+# lens 1-3/5 pass, and again if check_recent_events is set).
+MAX_TEXT_LENGTH = 20_000
+MAX_IMAGERY_DESCRIPTION_LENGTH = 2_000
+
 
 class ScanRequest(BaseModel):
-    text: str = Field(..., min_length=1, description="Campaign copy or brief to scan")
+    text: str = Field(
+        ...,
+        min_length=1,
+        max_length=MAX_TEXT_LENGTH,
+        description="Campaign copy or brief to scan",
+    )
     target_markets: list[str] = Field(..., min_length=1, description="ISO country codes, e.g. ['IE', 'KR', 'US']")
     industry: str = Field(..., description="e.g. fintech, FMCG, healthcare")
     content_type: str = Field(..., description="e.g. PR blog post, paid social ad, press release")
     imagery_description: str | None = Field(
-        default=None, description="Optional freeform description of visuals, used by the imagery lens only"
+        default=None,
+        max_length=MAX_IMAGERY_DESCRIPTION_LENGTH,
+        description="Optional freeform description of visuals, used by the imagery lens only",
     )
     check_recent_events: bool = Field(
         default=False,

@@ -60,3 +60,7 @@ export const CONTENT_TYPE_OPTIONS = [
 ] as const;
 
 export const SEVERITY_ORDER = ["high", "medium", "low"] as const;
+
+// Mirrors app/schemas/scan.py MAX_TEXT_LENGTH / MAX_IMAGERY_DESCRIPTION_LENGTH.
+export const MAX_TEXT_LENGTH = 20_000;
+export const MAX_IMAGERY_DESCRIPTION_LENGTH = 2_000;

@@ -105,6 +105,52 @@ def test_scan_requires_at_least_one_target_market(client):
     assert response.status_code == 422
 
 
+def test_scan_rejects_text_over_max_length(client):
+    from app.schemas.scan import MAX_TEXT_LENGTH
+
+    response = client.post(
+        "/scan",
+        json={
+            "text": "x" * (MAX_TEXT_LENGTH + 1),
+            "target_markets": ["IE"],
+            "industry": "fintech",
+            "content_type": "PR blog post",
+        },
+    )
+    assert response.status_code == 422
+
+
+def test_scan_accepts_text_at_max_length(client):
+    from app.schemas.scan import MAX_TEXT_LENGTH
+
+    response = client.post(
+        "/scan",
+        json={
+            "text": "x" * MAX_TEXT_LENGTH,
+            "target_markets": ["IE"],
+            "industry": "fintech",
+            "content_type": "PR blog post",
+        },
+    )
+    assert response.status_code == 200
+
+
+def test_scan_rejects_imagery_description_over_max_length(client):
+    from app.schemas.scan import MAX_IMAGERY_DESCRIPTION_LENGTH
+
+    response = client.post(
+        "/scan",
+        json={
+            "text": "Safe copy.",
+            "target_markets": ["IE"],
+            "industry": "fintech",
+            "content_type": "PR blog post",
+            "imagery_description": "x" * (MAX_IMAGERY_DESCRIPTION_LENGTH + 1),
+        },
+    )
+    assert response.status_code == 422
+
+
 def test_list_scans_returns_history_newest_first(client):
     first = client.post(
         "/scan",

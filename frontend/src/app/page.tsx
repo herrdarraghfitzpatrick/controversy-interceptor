@@ -11,7 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { MultiSelectTags } from "@/components/multi-select-tags";
 import { ApiError, createScan } from "@/lib/api";
-import { CONTENT_TYPE_OPTIONS, INDUSTRY_OPTIONS, TARGET_MARKET_OPTIONS } from "@/lib/constants";
+import {
+  CONTENT_TYPE_OPTIONS,
+  INDUSTRY_OPTIONS,
+  MAX_IMAGERY_DESCRIPTION_LENGTH,
+  MAX_TEXT_LENGTH,
+  TARGET_MARKET_OPTIONS,
+} from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 export default function ScanFormPage() {
   const router = useRouter();
@@ -71,15 +78,31 @@ export default function ScanFormPage() {
         <CardContent>
           <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="copy">Campaign copy or brief</Label>
+              <div className="flex items-baseline justify-between">
+                <Label htmlFor="copy">Campaign copy or brief</Label>
+                <span
+                  className={cn(
+                    "text-xs tabular-nums text-muted-foreground",
+                    text.length > MAX_TEXT_LENGTH * 0.9 && "text-severity-medium",
+                    text.length >= MAX_TEXT_LENGTH && "text-severity-high",
+                  )}
+                >
+                  {text.length.toLocaleString()} / {MAX_TEXT_LENGTH.toLocaleString()}
+                </span>
+              </div>
               <Textarea
                 id="copy"
                 required
                 rows={8}
+                maxLength={MAX_TEXT_LENGTH}
                 placeholder="Paste your campaign copy, brief, or press release here..."
                 value={text}
                 onChange={(e) => setText(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">
+                For the copy itself - not a full report or whitepaper. Long documents should be trimmed to the
+                relevant passage before scanning.
+              </p>
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
@@ -136,6 +159,7 @@ export default function ScanFormPage() {
               <Textarea
                 id="imagery"
                 rows={3}
+                maxLength={MAX_IMAGERY_DESCRIPTION_LENGTH}
                 placeholder="Describe any visuals, colors, gestures, or symbols in the campaign, for the imagery lens..."
                 value={imageryDescription}
                 onChange={(e) => setImageryDescription(e.target.value)}
